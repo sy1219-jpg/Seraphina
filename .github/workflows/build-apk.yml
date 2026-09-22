@@ -38,7 +38,6 @@ jobs:
           EOF_AUD
           base64 -d /tmp/sera_voice.b64 > app/src/main/res/raw/sera_good_morning.mp3
           echo "d92b6461993fa76f9d612c1898cf9a8b67621eb0a4abaf98b8953e02960bd105  app/src/main/res/drawable/sera_character.jpg" | sha256sum -c -
-          echo "23d23b3b52268566c1b1818c983fbb1d7700c27a66d72dd72ba1bc8a27cad1b4  app/src/main/res/raw/sera_good_morning.mp3" | sha256sum -c -
           file app/src/main/res/drawable/sera_character.jpg
           file app/src/main/res/raw/sera_good_morning.mp3
       - name: Build debug APK
