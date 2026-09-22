@@ -37,8 +37,13 @@ jobs:
               app/src/main/res/raw/sera_audio_part2.b64 \
               app/src/main/res/raw/sera_audio_part3.b64 \
               app/src/main/res/raw/sera_audio_part4.b64 \
-              app/src/main/res/raw/sera_audio_part5.b64 \
-              app/src/main/res/raw/sera_audio_part6.b64 > /tmp/sera_voice.b64
+              app/src/main/res/raw/sera_audio_part5.b64 > /tmp/sera_voice.b64
+          printf '%s' '8tlJr/rDWOoaCllBpv7u7V29g0N35E0RJKVSykg2RUxBTUU0LjB' >> /tmp/sera_voice.b64
+          printf 'V%.0s' {1..101} >> /tmp/sera_voice.b64
+          printf '%s' '//uSxHmD0/Gk4ieYeUgAADSAAAAE' >> /tmp/sera_voice.b64
+          printf 'V%.0s' {1..529} >> /tmp/sera_voice.b64
+          printf '%s' 'Q==' >> /tmp/sera_voice.b64
+          test "$(wc -c < /tmp/sera_voice.b64)" = "30712"
           base64 -d /tmp/sera_voice.b64 > app/src/main/res/raw/sera_good_morning.mp3
           echo "a52f954604bb5e91e98f2afc3fdbe5a39423d7d71cd1906db1973f90734191a9  app/src/main/res/raw/sera_good_morning.mp3" | sha256sum -c -
           test "$(stat -c%s app/src/main/res/raw/sera_good_morning.mp3)" = "23032"
