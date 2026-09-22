@@ -1,18 +1,30 @@
 package com.hellosera.app;
 
+import android.Manifest;
 import android.app.Activity;
+import android.app.AlarmManager;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.media.MediaPlayer;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.view.Gravity;
 import android.widget.*;
 
 public class MainActivity extends Activity {
+    private static final int NOTIFICATION_PERMISSION_REQUEST = 1001;
+
     private MediaPlayer player;
     private TextView status;
     private ImageView sera;
+    private Intent lastHandledIntent;
 
     private int dp(float v) {
         return (int) (v * getResources().getDisplayMetrics().density + .5f);
@@ -64,7 +76,7 @@ public class MainActivity extends Activity {
         title.setLineSpacing(0, 1.12f);
         root.addView(title, new LinearLayout.LayoutParams(-1, -2));
 
-        TextView sub = tv("버튼을 누르면 세라가 바로 말해요.", 15, muted, false);
+        TextView sub = tv("알림을 누르거나 아래 버튼을 누르면 세라가 바로 말해요.", 15, muted, false);
         LinearLayout.LayoutParams sup = new LinearLayout.LayoutParams(-1, -2);
         sup.topMargin = dp(8);
         root.addView(sub, sup);
@@ -104,14 +116,112 @@ public class MainActivity extends Activity {
         blp.topMargin = dp(18);
         root.addView(btn, blp);
 
-        status = tv("눌러서 세라의 목소리를 들어보세요.", 13, muted, false);
+        status = tv("가장 최근에 도착한 세라의 편지를 다시 들을 수 있어요.", 13, muted, false);
         LinearLayout.LayoutParams stp = new LinearLayout.LayoutParams(-1, -2);
         stp.topMargin = dp(12);
         root.addView(status, stp);
 
-        btn.setOnClickListener(v -> playVoice());
+        btn.setOnClickListener(v -> playLatestVoice());
 
         setContentView(scroll);
+
+        requestNotificationPermissionIfNeeded();
+        SeraScheduler.scheduleAll(this);
+        maybeRequestExactAlarmPermission();
+        handleLaunchIntent(getIntent());
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // 정확한 알람 권한을 방금 허용하고 돌아온 경우에도 시간을 다시 등록.
+        SeraScheduler.scheduleAll(this);
+    }
+
+    private void requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(
+                    new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                    NOTIFICATION_PERMISSION_REQUEST
+            );
+        }
+    }
+
+    private void maybeRequestExactAlarmPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return;
+
+        AlarmManager alarmManager =
+                (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager == null || alarmManager.canScheduleExactAlarms()) return;
+
+        boolean prompted = getSharedPreferences("sera_prefs", MODE_PRIVATE)
+                .getBoolean("exact_alarm_prompted", false);
+        if (prompted) return;
+
+        getSharedPreferences("sera_prefs", MODE_PRIVATE)
+                .edit()
+                .putBoolean("exact_alarm_prompted", true)
+                .apply();
+
+        new AlertDialog.Builder(this)
+                .setTitle("세라의 편지를 시간 맞춰 받을까요?")
+                .setMessage("07:30, 12:00, 19:00, 00:30에 정확히 알림을 받으려면 ‘알람 및 리마인더’ 권한을 허용해 주세요.")
+                .setPositiveButton("허용하기", (dialog, which) -> {
+                    try {
+                        Intent intent = new Intent(
+                                Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                                Uri.parse("package:" + getPackageName())
+                        );
+                        startActivity(intent);
+                    } catch (Exception ignored) {
+                        Toast.makeText(
+                                this,
+                                "설정에서 Hello, Sera의 ‘알람 및 리마인더’를 허용해 주세요.",
+                                Toast.LENGTH_LONG
+                        ).show();
+                    }
+                })
+                .setNegativeButton("나중에", null)
+                .show();
+    }
+
+    private void handleLaunchIntent(Intent intent) {
+        if (intent == null || intent == lastHandledIntent) return;
+        lastHandledIntent = intent;
+
+        boolean autoplay = intent.getBooleanExtra("autoplay", false);
+        int slot = intent.getIntExtra("slot", -1);
+
+        if (autoplay && slot != -1) {
+            status.postDelayed(() -> playSlot(slot), 300);
+        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        lastHandledIntent = null;
+        handleLaunchIntent(intent);
+    }
+
+    private void playLatestVoice() {
+        int latest = getSharedPreferences("sera_prefs", MODE_PRIVATE)
+                .getInt("latest_slot", -1);
+        if (latest == -1) {
+            latest = SeraScheduler.latestSlotByClock();
+        }
+        playSlot(latest);
+    }
+
+    private int rawResourceFor(int slot) {
+        if (slot == SeraScheduler.SLOT_MORNING) return R.raw.voice_0730;
+        if (slot == SeraScheduler.SLOT_LUNCH) return R.raw.voice_1200;
+        if (slot == SeraScheduler.SLOT_FOCUS) return R.raw.voice_1900;
+        if (slot == SeraScheduler.SLOT_NIGHT) return R.raw.voice_0030;
+        return R.raw.voice_0730;
     }
 
     private void setSpeaking(boolean speaking) {
@@ -123,14 +233,14 @@ public class MainActivity extends Activity {
                 .start();
     }
 
-    private void playVoice() {
+    private void playSlot(int slot) {
         if (player != null) {
             try { player.stop(); } catch (Exception ignored) {}
             player.release();
             player = null;
         }
 
-        player = MediaPlayer.create(this, R.raw.sera_good_morning);
+        player = MediaPlayer.create(this, rawResourceFor(slot));
         if (player == null) {
             status.setText("음성을 재생할 수 없어요.");
             return;
