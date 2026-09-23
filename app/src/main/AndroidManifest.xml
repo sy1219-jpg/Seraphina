@@ -6,7 +6,7 @@
 
     <application
         android:allowBackup="true"
-        android:label="Hello, Sera"
+        android:label="재원이에게"
         android:theme="@style/AppTheme">
 
         <activity
