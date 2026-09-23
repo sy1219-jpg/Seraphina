@@ -36,7 +36,7 @@ jobs:
           cat app/src/main/res/raw/voice_0730_0.b64 app/src/main/res/raw/voice_0730_1.b64 | tr -d '\\n\\r ' | base64 -d > app/src/main/res/raw/voice_0730.mp3
           cat app/src/main/res/raw/voice_1200_0.b64 app/src/main/res/raw/voice_1200_1.b64 | tr -d '\\n\\r ' | base64 -d > app/src/main/res/raw/voice_1200.mp3
           cat app/src/main/res/raw/voice_1900_0.b64 app/src/main/res/raw/voice_1900_1.b64 | tr -d '\\n\\r ' | base64 -d > app/src/main/res/raw/voice_1900.mp3
-          cat app/src/main/res/raw/voice_0030_0.b64 app/src/main/res/raw/voice_0030_1.b64 app/src/main/res/raw/voice_0030_2.b64 app/src/main/res/raw/voice_0030_3.b64 | tr -d '\\n\\r ' | base64 -d > app/src/main/res/raw/voice_0030.mp3
+          cat app/src/main/res/raw/voice_0030_0.b64 app/src/main/res/raw/voice_0030_1a.b64 app/src/main/res/raw/voice_0030_1b.b64 app/src/main/res/raw/voice_0030_2.b64 app/src/main/res/raw/voice_0030_3.b64 | tr -d '\\n\\r ' | base64 -d > app/src/main/res/raw/voice_0030.mp3
 
           echo "f8f8209c2f03c461cfba53bd433947266f2f54eda05a03ba52c0280335aad962  app/src/main/res/raw/voice_0730.mp3" | sha256sum -c -
           echo "a1e6d4d2fea9923f69b82abd15cd6bd481e63031f3227d0c6f43671e12bd6ba4  app/src/main/res/raw/voice_1200.mp3" | sha256sum -c -
