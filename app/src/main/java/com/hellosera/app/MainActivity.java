@@ -60,7 +60,7 @@ public class MainActivity extends Activity {
         root.setBackgroundColor(bg);
         scroll.addView(root, new ScrollView.LayoutParams(-1, -1));
 
-        TextView brand = tv("Hello, Sera", 17, ink, true);
+        TextView brand = tv("재원이에게", 17, ink, true);
         brand.setGravity(Gravity.START);
         root.addView(brand, new LinearLayout.LayoutParams(-1, -2));
 
